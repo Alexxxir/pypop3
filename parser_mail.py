@@ -1,5 +1,6 @@
-from util import lazy_split, field_from_base64
+from util import lazy_split, field_from_encoding
 import base64
+import quopri
 
 
 class Record:
@@ -17,6 +18,8 @@ class Record:
         if self.content_type.startswith("text"):
             if self.encoding == "base64":
                 self.data = base64.b64decode(self.data).decode()
+            if self.encoding == "quoted-printable":
+                self.data = quopri.decodestring(self.data).decode()
             return self.data
         for record in self.records:
             result = record.get_text()
@@ -59,7 +62,7 @@ class Record:
                         new_record.encoding = next(field)
                     if field_type.lower() == "content-disposition:":
                         next(field)
-                        new_record.name = field_from_base64(
+                        new_record.name = field_from_encoding(
                             next(field).split("=")[1].strip('"').rstrip('"'))
                     line = next(message)
                     if line == end:
@@ -132,15 +135,15 @@ class Mail:
                 field = lazy_split(line)
                 field_type = next(field)
                 if field_type.lower() == "return-path:":
-                    mail.sender = " ".join(map(field_from_base64, field))
+                    mail.sender = " ".join(map(field_from_encoding, field))
                 elif field_type.lower() == "from:":
-                    mail.from_ = " ".join(map(field_from_base64, field))
+                    mail.from_ = " ".join(map(field_from_encoding, field))
                 elif field_type.lower() == "date:":
-                    mail.date = " ".join(map(field_from_base64, field))
+                    mail.date = " ".join(map(field_from_encoding, field))
                 elif field_type.lower() == "subject:":
-                    mail.subject = " ".join(map(field_from_base64, field))
+                    mail.subject = " ".join(map(field_from_encoding, field))
                 elif field_type.lower() == "to:":
-                    mail.to = " ".join(map(field_from_base64, field))
+                    mail.to = " ".join(map(field_from_encoding, field))
                 elif field_type.lower() == "content-transfer-encoding:":
                     mail.record.encoding = next(field)
                 elif field_type.lower() == "content-type:":

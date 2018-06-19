@@ -2,6 +2,7 @@
 
 
 import base64
+import quopri
 
 
 def lazy_split(string, seps=(" ", "\t")):
@@ -24,12 +25,18 @@ def lazy_split(string, seps=(" ", "\t")):
     yield string
 
 
-def field_from_base64(field):
+def field_from_encoding(field):
     try:
         if field[0] == field[-1] == '"':
             field = field[1:-1]
-        if field.strip().lower().startswith("=?utf-8?"):
-            return base64.b64decode(field[10:-2]).decode()
+        field = field.strip()
+        if field.startswith("=?") and field.endswith("?="):
+            field = field.split("?")
+            if field[2].lower() == "b":
+                decode_field = base64.b64decode
+            else:
+                decode_field = quopri.decodestring
+            return decode_field(field[3]).decode(field[1].lower())
     except Exception:
         pass
     return field
